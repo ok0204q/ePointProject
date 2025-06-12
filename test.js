@@ -1,10 +1,19 @@
+process.env.NODE_ENV = 'test';
 const request = require('supertest');
-const { app, _reset } = require('./index');
-const { test, beforeEach } = require('node:test');
+const { app, _reset, connectDB, disconnectDB } = require('./index');
+const { test, before, after, beforeEach } = require('node:test');
 const assert = require('node:assert');
 
-beforeEach(() => {
-  _reset();
+before(async () => {
+  await connectDB();
+});
+
+after(async () => {
+  await disconnectDB();
+});
+
+beforeEach(async () => {
+  await _reset();
 });
 
 test('CRUD flow', async (t) => {
@@ -38,4 +47,21 @@ test('CRUD flow', async (t) => {
   await request(app)
     .get(`/items/${id}`)
     .expect(404);
+});
+
+test('register and login', async () => {
+  await request(app)
+    .post('/register')
+    .send({ username: 'user1', password: 'secret' })
+    .expect(201);
+
+  await request(app)
+    .post('/login')
+    .send({ username: 'user1', password: 'secret' })
+    .expect(200);
+
+  await request(app)
+    .post('/login')
+    .send({ username: 'user1', password: 'wrong' })
+    .expect(401);
 });
