@@ -8,7 +8,7 @@ async function connectDB() {}
 
 async function disconnectDB() {}
 
-let items = ["item1", "item2", "item3"];
+let items = ["item1", "item2", "item3","item4","item5","item6","item7","item8","item9","item10"];
 let currentId = 1;
 let users = [];
 let currentUserId = 1;
