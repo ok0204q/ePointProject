@@ -26,7 +26,9 @@ jobs:
         with:
           context: .
           push: true
-          tags: ok0204q/cpoints-api:latest
+          tags: |
+            ok0204q/cpoints-api:latest
+            ok0204q/cpoints-api:${{ github.sha }}
 
       - name: Deploy to K3s via SSH
         uses: appleboy/ssh-action@v1
@@ -36,4 +38,4 @@ jobs:
           key: ${{ secrets.K3S_SSH_KEY }}
           script: |
             export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
-            kubectl set image deployment/cpoint-api cpoint-api=ok0204q/cpoints-api:latest
+            kubectl set image deployment/cpoint-api cpoint-api=ok0204q/cpoints-api:${{ github.sha }}
