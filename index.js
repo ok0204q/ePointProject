@@ -56,6 +56,10 @@ app.get('/items', (req, res) => {
   res.json(items);
 });
 
+app.get('/', (req, res) => {
+  res.json({message: "Hello World"});
+});
+
 // Read single item
 app.get('/items/:id', (req, res) => {
   const id = parseInt(req.params.id, 10);
