@@ -57,7 +57,7 @@ app.get('/items', (req, res) => {
 });
 
 app.get('/', (req, res) => {
-  res.json({message: "Hello World"});
+  res.json({message: "Hello! world"});
 });
 
 // Read single item
