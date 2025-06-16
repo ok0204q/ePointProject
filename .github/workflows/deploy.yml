@@ -36,6 +36,7 @@ jobs:
           host: ${{ secrets.K3S_HOST }}
           username: ${{ secrets.K3S_USER }}
           key: ${{ secrets.K3S_SSH_KEY }}
+          port: 30022
           script: |
             export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
             kubectl set image deployment/cpoint-api cpoint-api=ok0204q/cpoints-api:${{ github.sha }}
