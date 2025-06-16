@@ -1,43 +1,70 @@
 const express = require('express');
-
+const { Pool } = require('pg');
 
 const app = express();
 app.use(express.json());
 
-async function connectDB() {}
+let pool;
+async function connectDB() {
+  pool = new Pool({
+    user: process.env.PGUSER || 'root',
+    host: process.env.PGHOST || '/var/run/postgresql',
+    database: process.env.PGDATABASE || 'postgres'
+  });
+  await pool.query(`CREATE TABLE IF NOT EXISTS demo_user (
+    id SERIAL PRIMARY KEY,
+    username TEXT UNIQUE NOT NULL,
+    password TEXT NOT NULL
+  )`);
+}
 
-async function disconnectDB() {}
+async function disconnectDB() {
+  await pool?.end();
+}
 
 let items = ["item1", "item2", "item3","item4","item5","item6","item7","item8","item9","item10"];
 let currentId = 1;
-let users = [];
-let currentUserId = 1;
 
 // Register user
-app.post('/register', (req, res) => {
+app.post('/register', async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) {
     return res.status(400).json({ error: 'Username and password are required' });
   }
-  if (users.find(u => u.username === username)) {
-    return res.status(409).json({ error: 'Username already exists' });
+  try {
+    const result = await pool.query(
+      'INSERT INTO demo_user (username, password) VALUES ($1, $2) RETURNING id, username',
+      [username, password]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    if (err.code === '23505') {
+      return res.status(409).json({ error: 'Username already exists' });
+    }
+    console.error(err);
+    res.status(500).json({ error: 'Database error' });
   }
-  const user = { id: currentUserId++, username, password };
-  users.push(user);
-  res.status(201).json({ id: String(user.id), username: user.username });
 });
 
 // Login user
-app.post('/login', (req, res) => {
+app.post('/login', async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) {
     return res.status(400).json({ error: 'Username and password are required' });
   }
-  const user = users.find(u => u.username === username);
-  if (!user || user.password !== password) {
-    return res.status(401).json({ error: 'Invalid credentials' });
+  try {
+    const result = await pool.query(
+      'SELECT password FROM demo_user WHERE username = $1',
+      [username]
+    );
+    if (result.rows.length === 0 || result.rows[0].password !== password) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+    res.json({ message: 'Login successful' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Database error' });
   }
-  res.json({ message: 'Login successful' });
 });
 
 // Create item
@@ -114,7 +141,8 @@ module.exports = {
   _reset: async () => {
     items = [];
     currentId = 1;
-    users = [];
-    currentUserId = 1;
+    if (pool) {
+      await pool.query('DELETE FROM demo_user');
+    }
   }
 };
