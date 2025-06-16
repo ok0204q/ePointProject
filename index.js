@@ -1,49 +1,37 @@
 const express = require('express');
-const { Pool } = require('pg');
+// Removed PostgreSQL dependency; using in-memory store instead
 
 const app = express();
 app.use(express.json());
 
-let pool;
+let users = [];
+
+// Stubs for previous database lifecycle functions
 async function connectDB() {
-  pool = new Pool({
-    user: process.env.PGUSER || 'root',
-    host: process.env.PGHOST || '/var/run/postgresql',
-    database: process.env.PGDATABASE || 'postgres'
-  });
-  await pool.query(`CREATE TABLE IF NOT EXISTS demo_user (
-    id SERIAL PRIMARY KEY,
-    username TEXT UNIQUE NOT NULL,
-    password TEXT NOT NULL
-  )`);
+  // simply reset the in-memory user store
+  users = [];
 }
 
 async function disconnectDB() {
-  await pool?.end();
+  // nothing to clean up for in-memory store
 }
 
 let items = ["item1", "item2", "item3","item4","item5","item6","item7","item8","item9","item10"];
 let currentId = 1;
 
 // Register user
+// Simple in-memory user registration
 app.post('/register', async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) {
     return res.status(400).json({ error: 'Username and password are required' });
   }
-  try {
-    const result = await pool.query(
-      'INSERT INTO demo_user (username, password) VALUES ($1, $2) RETURNING id, username',
-      [username, password]
-    );
-    res.status(201).json(result.rows[0]);
-  } catch (err) {
-    if (err.code === '23505') {
-      return res.status(409).json({ error: 'Username already exists' });
-    }
-    console.error(err);
-    res.status(500).json({ error: 'Database error' });
+  if (users.find(u => u.username === username)) {
+    return res.status(409).json({ error: 'Username already exists' });
   }
+  const user = { id: users.length + 1, username, password };
+  users.push(user);
+  res.status(201).json({ id: user.id, username: user.username });
 });
 
 // Login user
@@ -52,19 +40,11 @@ app.post('/login', async (req, res) => {
   if (!username || !password) {
     return res.status(400).json({ error: 'Username and password are required' });
   }
-  try {
-    const result = await pool.query(
-      'SELECT password FROM demo_user WHERE username = $1',
-      [username]
-    );
-    if (result.rows.length === 0 || result.rows[0].password !== password) {
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
-    res.json({ message: 'Login successful' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Database error' });
+  const user = users.find(u => u.username === username);
+  if (!user || user.password !== password) {
+    return res.status(401).json({ error: 'Invalid credentials' });
   }
+  res.json({ message: 'Login successful' });
 });
 
 // Create item
@@ -141,8 +121,6 @@ module.exports = {
   _reset: async () => {
     items = [];
     currentId = 1;
-    if (pool) {
-      await pool.query('DELETE FROM demo_user');
-    }
+    users = [];
   }
 };

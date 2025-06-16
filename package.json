@@ -12,8 +12,7 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "express": "^5.1.0",
-    "pg": "^8.11.3"
+    "express": "^5.1.0"
   },
   "devDependencies": {
     "supertest": "^7.1.1"
